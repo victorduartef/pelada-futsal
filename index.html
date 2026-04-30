@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pelada Futsal ⚽</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,sans-serif;background:#f5f5f0;color:#1a1a1a;min-height:100vh}
+.app{width:100%;max-width:720px;margin:0 auto;padding:12px 12px 40px}
+.header{display:flex;align-items:center;gap:10px;padding:12px 0 14px;border-bottom:1.5px solid #e0e0d8;margin-bottom:14px}
+.header-title{font-size:18px;font-weight:800;color:#1a1a1a}
+.header-sub{font-size:11px;color:#aaa;margin-top:1px;font-weight:500}
+.sync-badge{margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-size:11px;color:#888;padding:3px 9px;background:#fff;border-radius:20px;border:1px solid #e0e0d8;font-weight:500}
+.sdot{width:7px;height:7px;border-radius:50%;background:#7cc060;flex-shrink:0}
+.sdot.spin{background:#f0c040;animation:blink 1s infinite}
+.sdot.err{background:#e06060}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.tabs{display:flex;gap:0;border-bottom:1.5px solid #e0e0d8;margin-bottom:14px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:8px 10px;font-size:11px;font-weight:700;border:none;background:none;cursor:pointer;color:#aaa;border-bottom:2.5px solid transparent;margin-bottom:-1.5px;white-space:nowrap;letter-spacing:.2px;transition:color .15s}
+.tab.active{color:#1a1a1a;border-bottom:2.5px solid #1a1a1a}
+.sec{display:none}.sec.active{display:block}
+.card{background:#fff;border:1px solid #e8e8e0;border-radius:12px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.mgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:7px;margin-bottom:12px}
+.mcard{background:#f8f8f4;border-radius:8px;padding:9px 11px;border:1px solid #eeeee6}
+.mlbl{font-size:10px;color:#aaa;margin-bottom:2px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+.mval{font-size:20px;font-weight:800}
+.msub{font-size:11px;color:#aaa;margin-top:2px}
+.btn{padding:7px 13px;border:1.5px solid #d0d0c8;border-radius:8px;background:#fff;cursor:pointer;font-size:12px;font-weight:700;color:#1a1a1a;transition:all .15s;letter-spacing:.1px}
+.btn:hover{background:#f5f5f0}
+.btn-p{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+.btn-p:hover{background:#333}
+.btn-sm{padding:4px 9px;font-size:11px}
+.btn-danger{color:#b03030;border-color:#dda0a0}
+.btn-danger:hover{background:#fdf0f0}
+.btn-edit{color:#185fa5;border-color:#a0c0e0}
+.btn-edit:hover{background:#eef4fb}
+.btn-ok{background:#2d5a1b;color:#fff;border-color:#2d5a1b}
+.btn-ok:hover{opacity:.88;background:#2d5a1b}
+input,select,textarea{width:100%;padding:8px 10px;border:1.5px solid #d8d8d0;border-radius:8px;background:#fff;color:#1a1a1a;font-size:13px;font-family:inherit;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#1a1a1a}
+label{font-size:10px;color:#888;display:block;margin-bottom:3px;margin-top:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+.row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+.field{flex:1;min-width:80px}
+h3{font-size:14px;font-weight:800;margin-bottom:10px;letter-spacing:.1px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;font-size:10px;font-weight:700;color:#aaa;padding:6px 4px;border-bottom:1.5px solid #eee;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px}
+th.r,td.r{text-align:right}
+td{padding:7px 4px;border-bottom:1px solid #f5f5ee;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafaf6}
+.rnk{font-size:11px;color:#ccc;width:18px;font-weight:700}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700}
+.ba{background:#e6f1fb;color:#0c447c}.bb{background:#fde8e4;color:#8b1a0e}
+.bv{background:#e8f5df;color:#2d5a1b}.bd{background:#fde8e4;color:#8b1a0e}.be{background:#f5f5ea;color:#666}
+.bm{background:#e8f5df;color:#2d5a1b}.bav{background:#fff3e0;color:#8b4513}.bgo{background:#e6f1fb;color:#0c447c}
+.bwaz{background:#d8eeff;color:#0c447c;font-weight:800}.bwve{background:#fde8e4;color:#8b1a0e;font-weight:800}.bwem{background:#fef8d8;color:#7a6200;font-weight:800}
+.sdiv{font-size:10px;color:#aaa;margin:.7rem 0 .35rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.u8b{background:#fff3e0;color:#8b4513;padding:1px 6px;border-radius:10px;font-size:10px;font-weight:700;margin-left:4px}
+.sc-row{display:flex;align-items:center;justify-content:center;gap:2rem;padding:.8rem 0}
+.sc-team{text-align:center;flex:1}
+.sc-name{font-size:11px;color:#aaa;margin-bottom:4px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.sc-num{font-size:40px;font-weight:900;line-height:1}
+.sc-a{color:#185fa5}.sc-b{color:#c0392b}
+.ev-list{max-height:175px;overflow-y:auto}
+.ev-row{display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #f5f5ee;font-size:12px}
+.ev-row:last-child{border-bottom:none}
+.empty{text-align:center;padding:3rem;color:#bbb;font-size:13px;font-weight:500}
+.alert{padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:12px;font-weight:500;line-height:1.5}
+.ai{background:#eef5ff;color:#0c447c;border:1px solid #b8d4f0}
+.aw{background:#fff8e0;color:#8b5000;border:1px solid #f0d880}
+.as{background:#e8f5df;color:#2d5a1b;border:1px solid #a8d888}
+.chip{display:inline-block;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #d0d0c8;background:#f8f8f4;margin:2px;transition:all .15s}
+.chip:hover{border-color:#999}
+.chip.sel{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+.chip.ca{background:#e6f1fb;color:#0c447c;border-color:#80b8e8}
+.chip.cb{background:#fde8e4;color:#8b1a0e;border-color:#e8a090}
+.fbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;padding:8px 12px;background:#f8f8f4;border-radius:8px;border:1px solid #eeeee6}
+.ftog{display:flex;gap:3px;flex-wrap:wrap}
+.ftog button{padding:4px 10px;font-size:11px;border:1.5px solid #d0d0c8;border-radius:20px;cursor:pointer;background:#fff;color:#888;font-weight:700;white-space:nowrap;transition:all .15s}
+.ftog button:hover{border-color:#999}
+.ftog button.on{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+.dp{color:#2d5a1b;font-size:11px;font-weight:700}.dn{color:#b03030;font-size:11px;font-weight:700}.dz{color:#bbb;font-size:11px}
+.rdot{display:inline-block;width:22px;height:22px;border-radius:50%;font-size:10px;font-weight:700;text-align:center;line-height:22px}
+.rv{background:#e8f5df;color:#2d5a1b}.rd{background:#fde8e4;color:#8b1a0e}.re{background:#f5f5ea;color:#888}
+.av{width:36px;height:36px;border-radius:50%;background:#e6f1fb;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#0c447c;flex-shrink:0;border:1.5px solid #b8d4f0}
+.pr{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f5f5ee}
+.pr:last-child{border-bottom:none}
+.ttog{display:flex;gap:3px}
+.ttog button{padding:3px 8px;font-size:11px;border:1.5px solid #d0d0c8;border-radius:20px;cursor:pointer;background:#fff;color:#888;font-weight:700;transition:all .15s}
+.ttog button.tm{background:#e8f5df;color:#2d5a1b;border-color:#88c870}
+.ttog button.ta{background:#fff3e0;color:#8b4513;border-color:#e8b870}
+.ttog button.tg{background:#e6f1fb;color:#0c447c;border-color:#80b8e8}
+.rc{background:#f8f8f4;border-radius:8px;padding:10px 14px;margin-bottom:6px;display:flex;align-items:center;gap:12px;border:1px solid #eeeee6}
+.rv2{font-size:24px;font-weight:800;min-width:36px;text-align:center}
+.ri{flex:1}.rl{font-size:10px;color:#aaa;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.rd2{font-size:13px;font-weight:700;margin-top:2px}
+.top1{background:#c8e8b0!important;color:#1a4a0a;font-weight:800}
+.top2{background:#daf0c8!important;color:#2a5a14}
+.top3{background:#ecf8dc!important;color:#3a6a1e}
+.gtag{display:inline-block;padding:0 5px;border-radius:6px;font-size:10px;background:#e6f1fb;color:#0c447c;margin-left:3px;font-weight:700}
+.erow{display:flex;align-items:center;gap:6px;padding:7px 0;border-bottom:1px solid #f5f5ee;font-size:12px}
+.erow:last-child{border-bottom:none}
+.sbw{margin-bottom:11px}
+.sbn{font-size:13px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;font-weight:700}
+.sbt{display:flex;height:26px;border-radius:8px;overflow:hidden;border:1px solid #e8e8e0}
+.sbs{display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+.lovl{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:999}
+.lmod{background:#fff;border-radius:16px;padding:24px;width:300px;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+hr.div{border:none;border-top:1px solid #eee;margin:14px 0}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="header">
+  <span style="font-size:26px">⚽</span>
+  <div>
+    <div class="header-title">Pelada Futsal</div>
+    <div class="header-sub">Estatísticas da galera</div>
+  </div>
+  <span class="sync-badge" id="sbadge"><span class="sdot spin" id="sdot"></span><span id="stxt">Conectando...</span></span>
+</div>
+<div class="tabs">
+  <button class="tab active" onclick="go('stats')">Estatísticas</button>
+  <button class="tab" onclick="go('score')">Score</button>
+  <button class="tab" onclick="go('atleta')">Atleta</button>
+  <button class="tab" onclick="go('u8')">Últ. 8</button>
+  <button class="tab" onclick="go('elenco')">Elenco</button>
+  <button class="tab" onclick="go('partida')">Registrar</button>
+  <button class="tab" onclick="go('historico')">Histórico</button>
+  <button class="tab" onclick="go('foto')">Foto</button>
+  <button class="tab" onclick="go('dados')">Dados</button>
+</div>
+<div id="s-stats" class="sec active"></div>
+<div id="s-score" class="sec"></div>
+<div id="s-atleta" class="sec"></div>
+<div id="s-u8" class="sec"></div>
+<div id="s-elenco" class="sec"></div>
+<div id="s-partida" class="sec"></div>
+<div id="s-historico" class="sec"></div>
+<div id="s-foto" class="sec"></div>
+<div id="s-dados" class="sec"></div>
+</div>
+
+<div class="lovl" id="lovl" style="display:none">
+  <div class="lmod">
+    <div style="font-size:16px;font-weight:800;margin-bottom:6px">🔒 Acesso restrito</div>
+    <div style="font-size:13px;color:#666;margin-bottom:14px">Digite a senha de administrador.</div>
+    <input type="password" id="lpwd" placeholder="Senha" onkeydown="if(event.key==='Enter')chkPwd()" style="margin-bottom:10px">
+    <div id="lerr" style="font-size:12px;color:#b03030;min-height:16px;margin-bottom:10px"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-p" onclick="chkPwd()" style="flex:1">Entrar</button>
+      <button class="btn" onclick="closeLock()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import{getDatabase,ref,set,get,onValue}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+const cfg={apiKey:"AIzaSyBnabdeOTMZ3KLFyVmSMO1El_EWSiJFREQ",authDomain:"pelada-futsal.firebaseapp.com",databaseURL:"https://pelada-futsal-default-rtdb.firebaseio.com",projectId:"pelada-futsal",storageBucket:"pelada-futsal.firebasestorage.app",messagingSenderId:"225126749584",appId:"1:225126749584:web:07bc8688c7e2682ea70f15"};
+const fapp=initializeApp(cfg);
+const fdb=getDatabase(fapp);
+function ss(st){const d=document.getElementById('sdot'),t=document.getElementById('stxt');if(!d)return;d.className='sdot'+(st==='spin'?' spin':st==='err'?' err':'');t.textContent=st==='ok'?'Sincronizado':st==='spin'?'Salvando...':'Erro';}
+window._fbSave=async(data)=>{ss('spin');try{await set(ref(fdb,'pelada'),data);ss('ok');}catch(e){ss('err');}};
+window._fbLoad=async()=>{ss('spin');try{const s=await get(ref(fdb,'pelada'));ss('ok');return s.exists()?s.val():null;}catch(e){ss('err');return null;}};
+window._fbListen=(cb)=>{onValue(ref(fdb,'pelada'),(s)=>{ss('ok');if(s.exists())cb(s.val());},(e)=>ss('err'));};
+window._fbReady=true;
+if(window._appBoot)window._appBoot();
+</script>
+
+<script>
+const APWD='pelada123';
+let db={rows:[],elenco:[]};
+let fAv=false,fMes='todos',selAt='',rChart=null,editD=null;
+let isAdm=false,pendFn=null;
+
+function syncSave(){if(window._fbSave)window._fbSave(db);}
+
+window._appBoot=async function(){
+  const d=await(window._fbLoad?window._fbLoad():null);
+  if(d&&d.rows&&d.rows.length){db=d;}else{seed();}
+  if(!db.elenco)db.elenco=[];
+  if(window._fbListen)window._fbListen(d=>{if(d&&d.rows){db=d;const tabs=['stats','score','atleta','u8','elenco','partida','historico','foto','dados'];const at=document.querySelector('.tab.active');if(at){const i=[...document.querySelectorAll('.tab')].indexOf(at);if(i>=0)go(tabs[i]);}}});
+  go('stats');
+};
+if(window._fbReady)window._appBoot();
+
+function reqAdm(fn){if(isAdm){fn();return;}pendFn=fn;document.getElementById('lovl').style.display='flex';document.getElementById('lpwd').value='';document.getElementById('lerr').textContent='';setTimeout(()=>document.getElementById('lpwd').focus(),80);}
+function chkPwd(){if(document.getElementById('lpwd').value===APWD){isAdm=true;document.getElementById('lovl').style.display='none';if(pendFn){pendFn();pendFn=null;}}else{document.getElementById('lerr').textContent='Senha incorreta.';document.getElementById('lpwd').value='';}}
+function closeLock(){document.getElementById('lovl').style.display='none';pendFn=null;}
+
+// helpers
+const nT=s=>{if(!s)return'';const l=s.trim().toLowerCase();if(l.includes('az'))return'Azul';if(l.includes('ver'))return'Vermelho';return s.trim();};
+const nR=s=>{if(!s)return'';const l=s.trim().toLowerCase();if(l.includes('vit'))return'Vitória';if(l.includes('der'))return'Derrota';if(l.includes('emp')||l.includes('mpat'))return'Empate';return s.trim();};
+const isGP=s=>s&&s.toLowerCase().includes('goleiro');
+const nN=s=>{if(!s)return'';s=s.trim().replace(/\s*\(.*?\)\s*/g,'').trim();return s.split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(' ');};
+const exD=n=>{const d=new Date(Math.round((n-25569)*86400*1000));d.setDate(d.getDate()+1);return d.toLocaleDateString('pt-BR');};
+const clsM=s=>{if(!s)return'avulso';const l=s.trim().toLowerCase();if(l==='goleiro'||l.includes('goleiro'))return'goleiro';if(l==='avulso')return'avulso';const m=['janeiro','fevereiro','marco','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];if(m.some(x=>l.includes(x.replace('ç','c'))))return'mensalista';return'avulso';};
+const MES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const dMes=d=>{const p=d.split('/');return p.length===3?MES[parseInt(p[1])-1]||null:null;};
+const getMD=()=>{const f=new Set();db.rows.forEach(r=>{const m=dMes(r.date);if(m)f.add(m);});return MES.filter(m=>f.has(m));};
+const tipoJ=n=>{const e=db.elenco.find(p=>p.nome===n);return e?e.tipo:'avulso';};
+const isGolC=n=>{const e=db.elenco.find(p=>p.nome===n);return e?(e.goleiro||e.tipo==='goleiro'):false;};
+const aF=rows=>rows.filter(r=>{if(isGolC(r.jogador))return false;if(fMes!=='todos'){const m=dMes(r.date);if(m!==fMes)return false;}const t=tipoJ(r.jogador);if(t==='mensalista')return true;if(t==='avulso')return fAv;return false;});
+const sD=(a,b)=>{const p=x=>{const t=x.split('/');return t.length===3?new Date(t[2],t[1]-1,t[0]):new Date(0);};return p(a)-p(b);};
+const gDates=rows=>[...new Set((rows||db.rows).map(r=>r.date))].sort(sD);
+const cSt=rows=>{const s={};rows.forEach(r=>{if(!s[r.jogador])s[r.jogador]={gols:0,ass:0,v:0,e:0,d:0,jogos:0,pts:0};const p=s[r.jogador];p.gols+=r.gols;p.ass+=r.ass;p.jogos++;if(r.resultado==='Vitória'){p.v++;p.pts+=3;}else if(r.resultado==='Empate'){p.e++;p.pts+=1;}else if(r.resultado==='Derrota'){p.d++;}});return s;};
+const gU8=rows=>{const pD={};rows.forEach(r=>{if(!pD[r.jogador])pD[r.jogador]=[];if(!pD[r.jogador].includes(r.date))pD[r.jogador].push(r.date);});const u={};Object.entries(pD).forEach(([p,ds])=>{u[p]=new Set(ds.slice().sort(sD).slice(-8));});return rows.filter(r=>u[r.jogador]&&u[r.jogador].has(r.date));};
+const t3c=(v,s)=>{const r=s.indexOf(v);return r===0?'top1':r===1?'top2':r===2?'top3':'';};
+function cSeq(rows,nome){const pr=rows.filter(r=>r.jogador===nome);const dates=[...new Set(pr.map(r=>r.date))].sort(sD);const res=dates.map(d=>pr.find(r=>r.date===d)?.resultado||'');let mV=0,cV=0,mD=0,cD=0;res.forEach(r=>{if(r==='Vitória'){cV++;if(cV>mV)mV=cV;cD=0;}else{cV=0;if(r==='Derrota'){cD++;if(cD>mD)mD=cD;}else cD=0;}});let sVa=0,sDa=0;for(let i=res.length-1;i>=0;i--){if(res[i]==='Vitória')sVa++;else break;}for(let i=res.length-1;i>=0;i--){if(res[i]==='Derrota')sDa++;else break;}return{maxV:mV,maxD:mD,curV:sVa,curD:sDa};}
+function cRec(rows){const r={gols:{val:0,nome:'',date:''},ass:{val:0,nome:'',date:''},ga:{val:0,nome:'',date:''},mSV:{val:0,nome:''},mSD:{val:0,nome:''},cSV:{val:0,nome:''},cSD:{val:0,nome:''}};rows.forEach(x=>{if(x.gols>r.gols.val)r.gols={val:x.gols,nome:x.jogador,date:x.date};if(x.ass>r.ass.val)r.ass={val:x.ass,nome:x.jogador,date:x.date};const ga=x.gols+x.ass;if(ga>r.ga.val)r.ga={val:ga,nome:x.jogador,date:x.date};});const pl=[...new Set(rows.map(x=>x.jogador))];pl.forEach(p=>{const s=cSeq(rows,p);if(s.maxV>r.mSV.val)r.mSV={val:s.maxV,nome:p};if(s.maxD>r.mSD.val)r.mSD={val:s.maxD,nome:p};if(s.curV>r.cSV.val)r.cSV={val:s.curV,nome:p};if(s.curD>r.cSD.val)r.cSD={val:s.curD,nome:p};});return r;}
+
+function fBar(sec){
+  const nM=db.elenco.filter(p=>p.tipo==='mensalista').length,nA=db.elenco.filter(p=>p.tipo==='avulso').length;
+  const ms=getMD();let h=`<div class="fbar" style="gap:6px">`;
+  if(ms.length){h+=`<span style="font-size:10px;color:#888;font-weight:700">MÊS:</span><div class="ftog"><button class="${fMes==='todos'?'on':''}" onclick="setM('todos','${sec}')">Todos</button>`;ms.forEach(m=>h+=`<button class="${fMes===m?'on':''}" onclick="setM('${m}','${sec}')">${m}</button>`);h+=`</div><span style="width:1px;height:14px;background:#d8d8d0;display:inline-block;align-self:center;margin:0 2px"></span>`;}
+  h+=`<div class="ftog"><button class="on" style="cursor:default">Mensalistas(${nM})</button><button class="${fAv?'on':''}" onclick="tgAv('${sec}')">+Avulsos(${nA})</button></div></div>`;
+  return h;
+}
+function setM(m,s){fMes=m;go(s);}
+function tgAv(s){fAv=!fAv;go(s);}
+
+function go(tab){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['stats','score','atleta','u8','elenco','partida','historico','foto','dados'][i]===tab));
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
+  document.getElementById('s-'+tab).classList.add('active');
+  if(tab==='stats')rStats();if(tab==='score')rScore();if(tab==='atleta')rAtleta();
+  if(tab==='u8')rU8();if(tab==='elenco')rElenco();if(tab==='partida')reqAdm(rPartida);
+  if(tab==='historico')rHist();if(tab==='foto')rFoto();if(tab==='dados')rDados();
+}
+
+function rStats(){
+  const el=document.getElementById('s-stats');
+  if(!db.rows.length){el.innerHTML='<div class="empty">Sem dados. Vá em "Dados" para importar.</div>';return;}
+  const rows=aF(db.rows);const nM=db.elenco.filter(p=>p.tipo==='mensalista').length,nA=db.elenco.filter(p=>p.tipo==='avulso').length;
+  let h=fBar('stats');
+  h+=`<div class="mgrid"><div class="mcard"><div class="mlbl">Partidas</div><div class="mval">${gDates(db.rows).length}</div></div><div class="mcard"><div class="mlbl">Mensalistas</div><div class="mval">${nM}</div></div><div class="mcard"><div class="mlbl">Avulsos</div><div class="mval">${nA}</div></div><div class="mcard"><div class="mlbl">Gols</div><div class="mval">${rows.reduce((s,r)=>s+r.gols,0)}</div></div></div>`;
+  if(!rows.length){h+=`<div class="empty">Nenhum registro. Defina mensalistas em "Elenco".</div>`;el.innerHTML=h;return;}
+  const rec=cRec(rows);
+  h+=`<div class="card"><h3>🏆 Recordes da pelada</h3>
+  <div class="mgrid" style="margin-bottom:10px">
+    <div class="mcard"><div class="mlbl">Mais gols num dia</div><div class="mval" style="color:#185fa5">${rec.gols.val}</div><div class="msub">${rec.gols.nome} — ${rec.gols.date}</div></div>
+    <div class="mcard"><div class="mlbl">Mais ass. num dia</div><div class="mval" style="color:#2d7a5a">${rec.ass.val}</div><div class="msub">${rec.ass.nome} — ${rec.ass.date}</div></div>
+    <div class="mcard"><div class="mlbl">Mais G+A num dia</div><div class="mval" style="color:#8b4513">${rec.ga.val}</div><div class="msub">${rec.ga.nome} — ${rec.ga.date}</div></div>
+  </div>
+  <div class="mgrid" style="margin-bottom:0">
+    <div class="mcard"><div class="mlbl">Maior seq. vitórias</div><div class="mval" style="color:#2d5a1b">${rec.mSV.val}x</div><div class="msub">${rec.mSV.nome}</div></div>
+    <div class="mcard"><div class="mlbl">Seq. vit. atual</div><div class="mval" style="color:#2d5a1b">${rec.cSV.val}x</div><div class="msub">${rec.cSV.val>0?rec.cSV.nome:'—'}</div></div>
+    <div class="mcard"><div class="mlbl">Maior seq. derrotas</div><div class="mval" style="color:#b03030">${rec.mSD.val}x</div><div class="msub">${rec.mSD.nome}</div></div>
+    <div class="mcard"><div class="mlbl">Seq. der. atual</div><div class="mval" style="color:#b03030">${rec.cSD.val}x</div><div class="msub">${rec.cSD.val>0?rec.cSD.nome:'—'}</div></div>
+  </div></div>`;
+  const st=cSt(rows);
+  const art=Object.entries(st).map(([n,s])=>({n,...s,ga:s.gols+s.ass,mg:s.jogos?s.gols/s.jogos:0,ma:s.jogos?s.ass/s.jogos:0,mga:s.jogos?(s.gols+s.ass)/s.jogos:0})).sort((a,b)=>b.gols-a.gols||b.ga-a.ga);
+  const sG=[...new Set(art.map(x=>x.gols))].sort((a,b)=>b-a),sA=[...new Set(art.map(x=>x.ass))].sort((a,b)=>b-a),sGA=[...new Set(art.map(x=>x.ga))].sort((a,b)=>b-a),sMG=[...new Set(art.map(x=>+x.mg.toFixed(2)))].sort((a,b)=>b-a),sMA=[...new Set(art.map(x=>+x.ma.toFixed(2)))].sort((a,b)=>b-a),sMGA=[...new Set(art.map(x=>+x.mga.toFixed(2)))].sort((a,b)=>b-a);
+  h+=`<div class="card"><h3>⚽ Artilharia</h3><div style="font-size:10px;color:#bbb;margin-bottom:8px;font-weight:700;letter-spacing:.3px">TOP 3 DE CADA COLUNA EM DESTAQUE</div><div style="overflow-x:auto"><table><thead><tr><th></th><th>Jogador</th><th class="r">G</th><th class="r">A</th><th class="r">G+A</th><th class="r">Jogos</th><th class="r">Méd.G</th><th class="r">Méd.A</th><th class="r">Méd.G+A</th></tr></thead><tbody>`;
+  art.forEach(({n,gols,ass,ga,jogos,mg,ma,mga},i)=>{const tag=tipoJ(n)==='avulso'?'<span class="badge bav" style="font-size:10px;margin-left:2px">av</span>':'';h+=`<tr><td class="rnk">${i+1}</td><td><span style="cursor:pointer;color:#185fa5;font-weight:700" onclick="oAt('${n}')">${n}</span>${tag}</td><td class="r ${t3c(gols,sG)}">${gols}</td><td class="r ${t3c(ass,sA)}">${ass}</td><td class="r ${t3c(ga,sGA)}" style="${t3c(ga,sGA)?'font-weight:800':''}">${ga}</td><td class="r">${jogos}</td><td class="r ${t3c(+mg.toFixed(2),sMG)}">${mg.toFixed(2)}</td><td class="r ${t3c(+ma.toFixed(2),sMA)}">${ma.toFixed(2)}</td><td class="r ${t3c(+mga.toFixed(2),sMGA)}" style="${t3c(+mga.toFixed(2),sMGA)?'font-weight:800':''}">${mga.toFixed(2)}</td></tr>`;});
+  h+=`</tbody></table></div></div>`;
+  const pts=Object.entries(st).map(([n,s])=>({n,...s,med:s.jogos?s.pts/s.jogos:0})).sort((a,b)=>b.med-a.med||b.pts-a.pts);
+  const sP=[...new Set(pts.map(x=>x.pts))].sort((a,b)=>b-a),sMe=[...new Set(pts.map(x=>+x.med.toFixed(2)))].sort((a,b)=>b-a),sV=[...new Set(pts.map(x=>x.v))].sort((a,b)=>b-a);
+  h+=`<div class="card"><h3>📊 Pontuação média <span style="font-size:11px;font-weight:400;color:#aaa">(V=3 E=1 D=0)</span></h3><div style="overflow-x:auto"><table><thead><tr><th></th><th>Jogador</th><th class="r">Pts</th><th class="r">V</th><th class="r">E</th><th class="r">D</th><th class="r">Jogos</th><th class="r">Média</th></tr></thead><tbody>`;
+  pts.forEach(({n,pts:p,v,e,d,jogos,med},i)=>{const cm=t3c(+med.toFixed(2),sMe);h+=`<tr><td class="rnk">${i+1}</td><td><span style="cursor:pointer;color:#185fa5;font-weight:700" onclick="oAt('${n}')">${n}</span></td><td class="r ${t3c(p,sP)}">${p}</td><td class="r ${t3c(v,sV)}" style="color:${t3c(v,sV)?'#1a4a0a':'#2d5a1b'}">${v}</td><td class="r" style="color:#8b5000">${e}</td><td class="r" style="color:#b03030">${d}</td><td class="r">${jogos}</td><td class="r ${cm}" style="${cm?'font-weight:800':''}">${med.toFixed(2)}</td></tr>`;});
+  h+=`</tbody></table></div></div>`;el.innerHTML=h;
+}
+function oAt(n){selAt=n;go('atleta');}
+
+function rScore(){
+  const el=document.getElementById('s-score');
+  if(!db.rows.length){el.innerHTML='<div class="empty">Sem dados.</div>';return;}
+  const rows=aF(db.rows);if(!rows.length){el.innerHTML=fBar('score')+'<div class="empty">Nenhum registro.</div>';return;}
+  const st=cSt(rows);
+  const sc=Object.entries(st).map(([n,s])=>{const mP=s.jogos?s.pts/s.jogos:0,mG=s.jogos?s.gols/s.jogos:0,mA=s.jogos?s.ass/s.jogos:0;return{n,sP:mP,sG:mG*0.4,sA:mA*0.2,tot:mP+mG*0.4+mA*0.2};}).sort((a,b)=>b.tot-a.tot);
+  const mx=sc[0]?.tot||1;
+  const CP='#c0dd97',CG='#85b7eb',CA='#AFA9EC',TP='#27500A',TG='#0C447C',TA='#3C3489';
+  let h=fBar('score');
+  h+=`<div class="card"><h3>🎯 Score total</h3><div style="font-size:10px;color:#bbb;margin-bottom:10px;font-weight:700;letter-spacing:.3px">MÉD. PTS + MÉD. GOLS × 0,4 + MÉD. ASSIST. × 0,2</div>
+  <div style="display:flex;gap:14px;margin-bottom:14px;font-size:12px;color:#666;flex-wrap:wrap">
+    <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:${CP};display:inline-block;border:1px solid #a0c070"></span>Aproveitamento</span>
+    <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:${CG};display:inline-block;border:1px solid #5090d0"></span>Peso gols ×0,4</span>
+    <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:${CA};display:inline-block;border:1px solid #8878c8"></span>Peso assist. ×0,2</span>
+  </div>`;
+  sc.forEach(({n,sP,sG,sA,tot},i)=>{const pP=(sP/mx*100).toFixed(1),pG=(sG/mx*100).toFixed(1),pA=(sA/mx*100).toFixed(1);const med=i===0?'🥇 ':i===1?'🥈 ':i===2?'🥉 ':'';h+=`<div class="sbw"><div class="sbn"><span>${med}${n}</span><span>${tot.toFixed(2)}</span></div><div class="sbt"><div class="sbs" style="width:${pP}%;background:${CP};color:${TP}">${sP>=0.15?sP.toFixed(2):''}</div><div class="sbs" style="width:${pG}%;background:${CG};color:${TG}">${sG>=0.1?sG.toFixed(2):''}</div><div class="sbs" style="width:${pA}%;background:${CA};color:${TA}">${sA>=0.07?sA.toFixed(2):''}</div><div style="flex:1;background:#f0f0e8"></div></div></div>`;});
+  h+=`</div>`;el.innerHTML=h;
+}
+
+function rAtleta(){
+  const el=document.getElementById('s-atleta');const rows=aF(db.rows);const all=[...new Set(rows.map(r=>r.jogador))].sort();
+  let h=fBar('atleta');h+=`<div class="card" style="margin-bottom:10px"><div class="field"><label>Selecionar atleta</label><select id="asel" onchange="selAt=this.value;rAtletaC()"><option value="">-- escolha --</option>`;
+  all.forEach(p=>h+=`<option value="${p}"${selAt===p?' selected':''}>${p}</option>`);
+  h+=`</select></div></div><div id="abody"></div>`;el.innerHTML=h;if(selAt)rAtletaC();
+}
+function rAtletaC(){
+  const nome=selAt;const el=document.getElementById('abody');if(!nome){el.innerHTML='';return;}
+  const rows=aF(db.rows);const pr=rows.filter(r=>r.jogador===nome);if(!pr.length){el.innerHTML='<div class="empty">Sem dados para este atleta.</div>';return;}
+  const s=cSt(pr)[nome]||{gols:0,ass:0,v:0,e:0,d:0,jogos:0,pts:0};
+  const aS=cSt(rows);const vs=Object.values(aS);
+  const aMp=vs.reduce((sm,x)=>sm+(x.jogos?x.pts/x.jogos:0),0)/vs.length;
+  const aMg=vs.reduce((sm,x)=>sm+(x.jogos?x.gols/x.jogos:0),0)/vs.length;
+  const aMa=vs.reduce((sm,x)=>sm+(x.jogos?x.ass/x.jogos:0),0)/vs.length;
+  const mP=s.jogos?s.pts/s.jogos:0,mG=s.jogos?s.gols/s.jogos:0,mA=s.jogos?s.ass/s.jogos:0;
+  const ini=nome.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+  const tipo=tipoJ(nome);const tL=tipo==='avulso'?'<span class="badge bav">avulso</span>':tipo==='goleiro'?'<span class="badge bgo">goleiro</span>':'<span class="badge bm">mensalista</span>';
+  let rG={val:0,date:''},rGA={val:0,date:''};pr.forEach(r=>{if(r.gols>rG.val)rG={val:r.gols,date:r.date};const ga=r.gols+r.ass;if(ga>rGA.val)rGA={val:ga,date:r.date};});
+  const seq=cSeq(rows,nome);
+  let h=`<div class="card"><div style="display:flex;align-items:center;gap:12px;margin-bottom:12px"><div class="av" style="width:48px;height:48px;font-size:15px">${ini}</div><div><div style="font-size:18px;font-weight:800">${nome}</div><div style="margin-top:3px">${tL}</div></div></div>
+  <div class="mgrid" style="margin-bottom:0"><div class="mcard"><div class="mlbl">Jogos</div><div class="mval">${s.jogos}</div></div><div class="mcard"><div class="mlbl">Gols</div><div class="mval">${s.gols}</div></div><div class="mcard"><div class="mlbl">Assist.</div><div class="mval">${s.ass}</div></div><div class="mcard"><div class="mlbl">G+A</div><div class="mval">${s.gols+s.ass}</div></div><div class="mcard"><div class="mlbl">Pontos</div><div class="mval">${s.pts}</div></div><div class="mcard"><div class="mlbl">Méd.pts</div><div class="mval">${mP.toFixed(2)}</div></div></div></div>`;
+  h+=`<div class="card"><h3>🏅 Recordes pessoais</h3>
+  <div class="rc"><div class="rv2" style="color:#185fa5">${rG.val}</div><div class="ri"><div class="rl">Recorde de gols em uma partida</div><div class="rd2">${rG.val} gol${rG.val!==1?'s':''} — ${rG.date}</div></div></div>
+  <div class="rc"><div class="rv2" style="color:#8b4513">${rGA.val}</div><div class="ri"><div class="rl">Recorde de participações G+A</div><div class="rd2">${rGA.val} participaç${rGA.val!==1?'ões':'ão'} — ${rGA.date}</div></div></div>
+  <div class="rc"><div class="rv2" style="color:#2d5a1b">${seq.maxV}</div><div class="ri"><div class="rl">Maior sequência de vitórias</div><div class="rd2">${seq.maxV} vitória${seq.maxV!==1?'s':''} seguidas</div></div></div>
+  <div class="rc" style="border:1.5px solid ${seq.curV>0?'#88c870':'#eee'}"><div class="rv2" style="color:${seq.curV>0?'#2d5a1b':'#ccc'}">${seq.curV}</div><div class="ri"><div class="rl">Sequência de vitórias atual</div><div class="rd2">${seq.curV>0?seq.curV+' vitória'+(seq.curV!==1?'s':'')+' em sequência':'Sem sequência ativa'}</div></div></div>
+  <div class="rc"><div class="rv2" style="color:#b03030">${seq.maxD}</div><div class="ri"><div class="rl">Maior sequência de derrotas</div><div class="rd2">${seq.maxD} derrota${seq.maxD!==1?'s':''} seguidas</div></div></div>
+  <div class="rc" style="border:1.5px solid ${seq.curD>0?'#e09090':'#eee'}"><div class="rv2" style="color:${seq.curD>0?'#b03030':'#ccc'}">${seq.curD}</div><div class="ri"><div class="rl">Sequência de derrotas atual</div><div class="rd2">${seq.curD>0?seq.curD+' derrota'+(seq.curD!==1?'s':'')+' em sequência':'Sem sequência negativa ativa'}</div></div></div>
+  </div>`;
+  h+=`<div class="card"><h3>📈 Comparativo vs. média</h3><div style="display:flex;gap:14px;margin-bottom:12px;font-size:12px;color:#666"><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#378ADD;display:inline-block"></span>Acima da média</span><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#E24B4A;display:inline-block"></span>Abaixo da média</span></div>`;
+  [{label:'Méd.pts/dia',val:mP,avg:aMp},{label:'Méd.G/dia',val:mG,avg:aMg},{label:'Méd.A/dia',val:mA,avg:aMa}].forEach(({label,val,avg})=>{const mx=Math.max(val,avg)*1.35||1;const pp=Math.min(val/mx*100,100).toFixed(1),ap=Math.min(avg/mx*100,100).toFixed(1);const hi=val>=avg;h+=`<div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="font-size:12px;color:#888;font-weight:600">${label}</span><span style="font-size:12px;font-weight:700">${val.toFixed(2)} <span style="color:${hi?'#2d5a1b':'#b03030'};font-size:11px">${hi?'▲':'▼'} vs ${avg.toFixed(2)}</span></span></div><div style="position:relative;height:10px;background:#f0f0e8;border-radius:5px;border:1px solid #e8e8e0"><div style="height:100%;width:${pp}%;background:${hi?'#378ADD':'#E24B4A'};border-radius:5px"></div><div style="position:absolute;top:-3px;left:${ap}%;width:2px;height:16px;background:#999;border-radius:1px"></div></div></div>`;});
+  h+=`</div>`;
+  const pd=[...new Set(pr.map(r=>r.date))].sort((a,b)=>sD(b,a));
+  h+=`<div class="card"><h3>📅 Histórico</h3><div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px">`;
+  [...pd].reverse().forEach(d=>{const r=pr.find(x=>x.date===d);if(!r)return;const c=r.resultado==='Vitória'?'rv':r.resultado==='Derrota'?'rd':'re';const l=r.resultado==='Vitória'?'V':r.resultado==='Derrota'?'D':'E';h+=`<span class="rdot ${c}" title="${d}">${l}</span>`;});
+  h+=`</div><div style="overflow-x:auto"><table><thead><tr><th>Data</th><th>Time</th><th class="r">G</th><th class="r">A</th><th class="r">G+A</th><th>Resultado</th></tr></thead><tbody>`;
+  pd.forEach(d=>{const r=pr.find(x=>x.date===d);if(!r)return;const rc=r.resultado==='Vitória'?'bv':r.resultado==='Derrota'?'bd':'be';const tc=r.time==='Azul'?'ba':'bb';h+=`<tr><td>${d}</td><td><span class="badge ${tc}">${r.time}</span></td><td class="r">${r.gols}</td><td class="r">${r.ass}</td><td class="r" style="font-weight:800">${r.gols+r.ass}</td><td><span class="badge ${rc}">${r.resultado}</span></td></tr>`;});
+  h+=`</tbody></table></div></div>`;
+  h+=`<div class="card"><h3>🕸 Radar</h3><div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;font-size:12px;color:#666"><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#378ADD;display:inline-block"></span>${nome}</span><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#aaa;display:inline-block"></span>Média pelada</span></div><div style="position:relative;width:100%;height:260px"><canvas id="rchart"></canvas></div></div>`;
+  el.innerHTML=h;
+  setTimeout(()=>{const ctx=document.getElementById('rchart');if(!ctx)return;if(rChart){rChart.destroy();rChart=null;}const mx=Math.max(mP,aMp,mG,aMg,mA,aMa)*1.4||1;rChart=new Chart(ctx,{type:'radar',data:{labels:['Méd. pontos','Méd. gols','Méd. assist.'],datasets:[{label:nome,data:[+mP.toFixed(2),+mG.toFixed(2),+mA.toFixed(2)],backgroundColor:'rgba(55,138,221,0.15)',borderColor:'#378ADD',borderWidth:2,pointBackgroundColor:'#378ADD',pointRadius:4},{label:'Média',data:[+aMp.toFixed(2),+aMg.toFixed(2),+aMa.toFixed(2)],backgroundColor:'rgba(0,0,0,.04)',borderColor:'#aaa',borderWidth:2,borderDash:[4,3],pointBackgroundColor:'#aaa',pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{r:{min:0,max:+mx.toFixed(2),ticks:{stepSize:+(mx/4).toFixed(2),font:{size:10},color:'#bbb',backdropColor:'transparent'},grid:{color:'rgba(0,0,0,.06)'},angleLines:{color:'rgba(0,0,0,.06)'},pointLabels:{font:{size:12},color:'#888'}}}}});},120);
+}
+
+function rU8(){
+  const el=document.getElementById('s-u8');if(!db.rows.length){el.innerHTML='<div class="empty">Sem dados.</div>';return;}
+  const rows=aF(db.rows);if(!rows.length){el.innerHTML=fBar('u8')+'<div class="empty">Nenhum registro.</div>';return;}
+  const u8=gU8(rows),aS=cSt(rows),u8S=cSt(u8);const pl=Object.keys(u8S).sort();
+  let h=fBar('u8');h+=`<div class="alert ai" style="font-size:11px">Médias das últimas 8 partidas de cada jogador vs. histórico completo.</div>`;
+  const art=pl.map(p=>({p,u:u8S[p]||{gols:0,ass:0,jogos:0},a:aS[p]||{gols:0,ass:0,jogos:0}})).sort((a,b)=>b.u.gols-a.u.gols);
+  h+=`<div class="card"><h3>⚽ Artilharia — últimas 8 <span class="u8b">ult.8</span></h3><div style="overflow-x:auto"><table><thead><tr><th></th><th>Jogador</th><th class="r">G</th><th class="r">A</th><th class="r">G+A</th><th class="r">Jogos</th><th class="r">Méd.G</th><th class="r">vs.geral</th></tr></thead><tbody>`;
+  art.forEach(({p,u,a},i)=>{const m8=u.jogos?u.gols/u.jogos:0,mA=a.jogos?a.gols/a.jogos:0,d=m8-mA;const dc=d>0.05?'dp':d<-0.05?'dn':'dz';h+=`<tr><td class="rnk">${i+1}</td><td><span style="cursor:pointer;color:#185fa5;font-weight:700" onclick="oAt('${p}')">${p}</span></td><td class="r">${u.gols}</td><td class="r">${u.ass}</td><td class="r" style="font-weight:800">${u.gols+u.ass}</td><td class="r">${u.jogos}</td><td class="r">${m8.toFixed(2)}</td><td class="r ${dc}">${d>=0?'+':''}${d.toFixed(2)}</td></tr>`;});
+  h+=`</tbody></table></div></div>`;
+  const pts=pl.map(p=>({p,u:u8S[p]||{pts:0,v:0,e:0,d:0,jogos:0},a:aS[p]||{pts:0,jogos:0}})).sort((a,b)=>(b.u.jogos?b.u.pts/b.u.jogos:0)-(a.u.jogos?a.u.pts/a.u.jogos:0));
+  h+=`<div class="card"><h3>📊 Pontuação — últimas 8 <span class="u8b">ult.8</span></h3><div style="overflow-x:auto"><table><thead><tr><th></th><th>Jogador</th><th class="r">Pts</th><th class="r">V</th><th class="r">E</th><th class="r">D</th><th class="r">Jogos</th><th class="r">Média</th><th class="r">vs.geral</th></tr></thead><tbody>`;
+  pts.forEach(({p,u,a},i)=>{const m8=u.jogos?u.pts/u.jogos:0,mA=a.jogos?a.pts/a.jogos:0,d=m8-mA;const dc=d>0.05?'dp':d<-0.05?'dn':'dz';h+=`<tr><td class="rnk">${i+1}</td><td><span style="cursor:pointer;color:#185fa5;font-weight:700" onclick="oAt('${p}')">${p}</span></td><td class="r">${u.pts}</td><td class="r" style="color:#2d5a1b">${u.v}</td><td class="r" style="color:#8b5000">${u.e}</td><td class="r" style="color:#b03030">${u.d}</td><td class="r">${u.jogos}</td><td class="r" style="font-weight:800">${m8.toFixed(2)}</td><td class="r ${dc}">${d>=0?'+':''}${d.toFixed(2)}</td></tr>`;});
+  h+=`</tbody></table></div></div>`;el.innerHTML=h;
+}
+
+function rElenco(){
+  const el=document.getElementById('s-elenco');
+  const mens=db.elenco.filter(p=>p.tipo==='mensalista'&&!p.goleiro).sort((a,b)=>a.nome.localeCompare(b.nome));
+  const avs=db.elenco.filter(p=>p.tipo==='avulso'&&!p.goleiro).sort((a,b)=>a.nome.localeCompare(b.nome));
+  const gols=db.elenco.filter(p=>p.goleiro||p.tipo==='goleiro').sort((a,b)=>a.nome.localeCompare(b.nome));
+  let h='';
+  if(!isAdm)h+=`<div class="alert ai">Visualização apenas. <button class="btn btn-sm" onclick="reqAdm(rElenco)" style="margin-left:8px">Desbloquear edição</button></div>`;
+  h+=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><h3 style="margin:0">👥 Elenco <span style="font-size:12px;font-weight:400;color:#aaa">${db.elenco.length} jogadores</span></h3>${isAdm?'<span style="font-size:10px;color:#bbb;font-weight:700">TOQUE NO TIPO PARA ALTERAR</span>':''}</div>`;
+  const sec=(tit,pl)=>{if(!pl.length)return'';let s=`<div class="sdiv">${tit} (${pl.length})</div>`;pl.forEach(p=>{const ini=p.nome.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();const j=db.rows.filter(r=>r.jogador===p.nome).length;const iM=p.tipo==='mensalista',iA=p.tipo==='avulso',iG=p.goleiro||p.tipo==='goleiro';s+=`<div class="pr"><div class="av">${ini}</div><div style="flex:1"><div style="font-size:13px;font-weight:700">${p.nome}</div><div style="font-size:11px;color:#bbb;margin-top:1px">${j} partida${j!==1?'s':''}</div></div>${isAdm?`<div class="ttog">${!iG?`<button class="${iM?'tm':''}" onclick="sTipo('${p.id}','mensalista')">Mensalista</button><button class="${iA?'ta':''}" onclick="sTipo('${p.id}','avulso')">Avulso</button>`:''}<button class="${iG?'tg':''}" onclick="sTipo('${p.id}','goleiro')">Goleiro</button></div><button class="btn btn-sm btn-danger" style="margin-left:6px" onclick="rmElenco('${p.id}')">×</button>`:`<span class="badge ${iM?'bm':iA?'bav':'bgo'}">${iM?'mensalista':iA?'avulso':'goleiro'}</span>`}</div>`;});return s;};
+  h+=sec('Mensalistas',mens)+sec('Goleiros',gols)+sec('Avulsos',avs);
+  if(!db.elenco.length)h+=`<div class="empty">Nenhum jogador ainda.</div>`;h+=`</div>`;
+  if(isAdm){h+=`<div class="card"><h3>Adicionar jogador</h3><div class="row"><div class="field"><label>Nome</label><input type="text" id="enome" placeholder="Nome" onkeydown="if(event.key==='Enter')addE()"></div><div style="width:120px"><label>Tipo</label><select id="etipo"><option value="mensalista">Mensalista</option><option value="avulso">Avulso</option><option value="goleiro">Goleiro</option></select></div><button class="btn btn-p btn-sm" style="margin-bottom:1px" onclick="addE()">Adicionar</button></div><div id="emsg" style="margin-top:8px;font-size:12px"></div></div>`;}
+  el.innerHTML=h;
+}
+function sTipo(id,tipo){const p=db.elenco.find(x=>x.id===id);if(!p)return;p.tipo=tipo;p.goleiro=tipo==='goleiro';syncSave();rElenco();}
+function addE(){const nome=nN(document.getElementById('enome').value);const tipo=document.getElementById('etipo').value;if(!nome){document.getElementById('emsg').innerHTML='<span style="color:#b03030">Digite o nome.</span>';return;}if(db.elenco.find(p=>p.nome.toLowerCase()===nome.toLowerCase())){document.getElementById('emsg').innerHTML='<span style="color:#b03030">Já está no elenco.</span>';return;}db.elenco.push({id:'e_'+Date.now(),nome,tipo,goleiro:tipo==='goleiro'});document.getElementById('enome').value='';document.getElementById('emsg').innerHTML=`<span style="color:#2d5a1b">${nome} adicionado.</span>`;syncSave();rElenco();}
+function rmElenco(id){const p=db.elenco.find(x=>x.id===id);if(!confirm(`Remover ${p?.nome}? O histórico não será apagado.`))return;db.elenco=db.elenco.filter(x=>x.id!==id);syncSave();rElenco();}
+
+function rHist(){
+  const el=document.getElementById('s-historico');if(!db.rows.length){el.innerHTML='<div class="empty">Sem dados.</div>';return;}
+  if(editD&&isAdm){rEditP(el);return;}
+  const ms=getMD();let fH=typeof window._hm!=='undefined'?window._hm:'todos';
+  let h=`<div class="fbar" style="margin-bottom:12px"><span style="font-size:10px;color:#888;font-weight:700">MÊS:</span><div class="ftog"><button class="${fH==='todos'?'on':''}" onclick="window._hm='todos';rHist()">Todos</button>`;
+  ms.forEach(m=>h+=`<button class="${fH===m?'on':''}" onclick="window._hm='${m}';rHist()">${m}</button>`);h+=`</div></div>`;
+  const dates=gDates(db.rows).filter(d=>fH==='todos'||dMes(d)===fH);
+  h+=`<div class="card"><h3>📋 Partidas (${dates.length})</h3><div style="overflow-x:auto"><table><thead><tr><th>Data</th><th>Azul</th><th>Vermelho</th><th class="r">Placar</th><th>Vencedor</th>${isAdm?'<th></th>':''}</tr></thead><tbody>`;
+  [...dates].reverse().forEach(d=>{const rd=db.rows.filter(r=>r.date===d);const az=rd.filter(r=>r.time==='Azul'),ve=rd.filter(r=>r.time==='Vermelho');const gA=az.reduce((s,r)=>s+r.gols,0),gV=ve.reduce((s,r)=>s+r.gols,0);const fmt=pl=>{const li=pl.filter(r=>!isGolC(r.jogador)).sort((a,b)=>b.gols-a.gols);const go=pl.filter(r=>isGolC(r.jogador));return[...li,...go].map(r=>`${r.jogador}(${r.gols})${isGolC(r.jogador)?'<span class="gtag">G</span>':''}`).join(', ');};let vB,vN;if(gA>gV){vB='bwaz';vN='Azul';}else if(gV>gA){vB='bwve';vN='Vermelho';}else{vB='bwem';vN='Empate';}h+=`<tr><td style="white-space:nowrap;font-weight:700">${d}</td><td style="font-size:11px;color:#666">${fmt(az)}</td><td style="font-size:11px;color:#666">${fmt(ve)}</td><td class="r" style="font-weight:800;white-space:nowrap">${gA}×${gV}</td><td><span class="badge ${vB}">${vN}</span></td>${isAdm?`<td><button class="btn btn-sm btn-edit" onclick="sEdit('${d}')">✏️</button></td>`:''}</tr>`;});
+  h+=`</tbody></table></div></div>`;if(!isAdm)h+=`<div style="text-align:center;margin-top:8px"><button class="btn btn-sm" onclick="reqAdm(rHist)">Desbloquear edição</button></div>`;
+  el.innerHTML=h;
+}
+function sEdit(d){editD=d;rHist();}
+function canEdit(){editD=null;rHist();}
+function rEditP(el){
+  const d=editD;const rows=db.rows.filter(r=>r.date===d);if(!rows.length){editD=null;rHist();return;}
+  let h=`<div class="card"><div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><button class="btn btn-sm" onclick="canEdit()">← Voltar</button><h3 style="margin:0">Editar — ${d}</h3></div><div class="alert ai" style="font-size:12px">Edite nome, gols e assistências. O resultado é recalculado ao salvar.</div>`;
+  ['Azul','Vermelho'].forEach(time=>{const tr=rows.filter(r=>r.time===time);if(!tr.length)return;const cor=time==='Azul'?'#185fa5':'#c0392b';h+=`<div class="sdiv" style="color:${cor}">${time}</div>`;tr.forEach(r=>{const idx=db.rows.indexOf(r);const iG=r.goleiro||isGolC(r.jogador);h+=`<div class="erow"><div style="flex:1.8;min-width:100px"><input type="text" value="${r.jogador}" id="en_${idx}" style="padding:5px 8px;font-size:12px"></div>${iG?'<span class="gtag" style="flex-shrink:0">G</span>':''}<span style="font-size:11px;color:#aaa;flex-shrink:0;font-weight:700">G</span><input type="number" min="0" max="20" value="${r.gols}" style="width:48px;text-align:center;padding:5px 6px;font-size:12px" id="eg_${idx}"><span style="font-size:11px;color:#aaa;flex-shrink:0;font-weight:700">A</span><input type="number" min="0" max="20" value="${r.ass}" style="width:48px;text-align:center;padding:5px 6px;font-size:12px" id="ea_${idx}"></div>`;});});
+  h+=`<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-p" onclick="svEdit('${d}')">Salvar alterações</button><button class="btn" onclick="canEdit()">Cancelar</button><button class="btn btn-danger" style="margin-left:auto" onclick="delP('${d}')">Excluir partida</button></div></div>`;
+  el.innerHTML=h;
+}
+function svEdit(d){const rows=db.rows.filter(r=>r.date===d);rows.forEach(r=>{const idx=db.rows.indexOf(r);const ni=document.getElementById(`en_${idx}`);const gi=document.getElementById(`eg_${idx}`);const ai=document.getElementById(`ea_${idx}`);if(ni){const nn=nN(ni.value);if(nn&&nn!==r.jogador){const eo=db.elenco.find(p=>p.nome===r.jogador);if(eo)eo.nome=nn;else db.elenco.push({id:'e_'+Date.now(),nome:nn,tipo:r.goleiro?'goleiro':'avulso',goleiro:r.goleiro});r.jogador=nn;}}if(gi)r.gols=parseInt(gi.value)||0;if(ai)r.ass=parseInt(ai.value)||0;});const az=db.rows.filter(r=>r.date===d&&r.time==='Azul'),ve=db.rows.filter(r=>r.date===d&&r.time==='Vermelho');const gA=az.reduce((s,r)=>s+r.gols,0),gV=ve.reduce((s,r)=>s+r.gols,0);const rA=gA>gV?'Vitória':gV>gA?'Derrota':'Empate',rV=gV>gA?'Vitória':gA>gV?'Derrota':'Empate';db.rows.forEach(r=>{if(r.date===d)r.resultado=r.time==='Azul'?rA:rV;});syncSave();editD=null;rHist();}
+function delP(d){if(!confirm(`Excluir a partida de ${d} permanentemente?`))return;db.rows=db.rows.filter(r=>r.date!==d);syncSave();editD=null;rHist();}
+
+let match={fase:'cfg',tA:[],tB:[],evts:[],sA:0,sB:0,date:'',gA:null,gB:null};
+function rPartida(){
+  const el=document.getElementById('s-partida');
+  const allP=db.elenco.filter(p=>!p.goleiro&&p.tipo!=='goleiro').sort((a,b)=>a.nome.localeCompare(b.nome));
+  const allG=db.elenco.filter(p=>p.goleiro||p.tipo==='goleiro').sort((a,b)=>a.nome.localeCompare(b.nome));
+  if(match.fase==='cfg'){
+    let h=`<div class="card"><h3>⚙️ Configurar partida</h3>`;
+    if(!allP.length)h+=`<div class="alert aw" style="margin-bottom:10px">Nenhum jogador no elenco. Cadastre em "Elenco" primeiro.</div>`;
+    h+=`<label>Data</label><input type="text" id="mdt" value="${match.date||new Date().toLocaleDateString('pt-BR')}" style="max-width:150px">`;
+    if(allP.length){h+=`<div class="sdiv" style="color:#185fa5">TIME AZUL</div><div>`;allP.forEach(p=>{const s=match.tA.includes(p.nome);h+=`<span class="chip ${s?'sel ca':''}" onclick="togT('A','${p.nome}')">${p.nome}</span>`;});h+=`</div><div class="sdiv" style="color:#c0392b">TIME VERMELHO</div><div>`;allP.forEach(p=>{const s=match.tB.includes(p.nome);h+=`<span class="chip ${s?'sel cb':''}" onclick="togT('B','${p.nome}')">${p.nome}</span>`;});h+=`</div>`;}
+    if(allG.length){h+=`<div class="row" style="margin-top:10px"><div class="field"><label>Goleiro Azul</label><select id="gasel"><option value="">--</option>`;allG.forEach(g=>h+=`<option value="${g.nome}"${match.gA===g.nome?' selected':''}>${g.nome}</option>`);h+=`</select></div><div class="field"><label>Goleiro Vermelho</label><select id="gbsel"><option value="">--</option>`;allG.forEach(g=>h+=`<option value="${g.nome}"${match.gB===g.nome?' selected':''}>${g.nome}</option>`);h+=`</select></div></div>`;}
+    h+=`<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-p" onclick="startM()">▶ Iniciar</button><button class="btn" onclick="shuffM()">🔀 Sortear</button></div></div>`;el.innerHTML=h;
+  } else if(match.fase==='play'){
+    const all=[...match.tA,...match.tB];
+    let h=`<div class="card"><div class="sc-row"><div class="sc-team"><div class="sc-name">Azul</div><div class="sc-num sc-a">${match.sA}</div></div><div style="font-size:28px;color:#ddd;font-weight:200">×</div><div class="sc-team"><div class="sc-name">Vermelho</div><div class="sc-num sc-b">${match.sB}</div></div></div><div class="sdiv">REGISTRAR GOL</div><div class="row"><div class="field"><label>Gol</label><select id="eg"><option value="">-- jogador --</option>`;all.forEach(p=>h+=`<option value="${p}">${p}</option>`);h+=`</select></div><div class="field"><label>Assistência</label><select id="ea"><option value="">-- nenhuma --</option>`;all.forEach(p=>h+=`<option value="${p}">${p}</option>`);h+=`</select></div><button class="btn btn-p btn-sm" onclick="addG()" style="margin-bottom:1px">⚽ Gol</button></div>`;
+    if(match.evts.length){h+=`<div class="sdiv">EVENTOS (${match.evts.length})</div><div class="ev-list">`;[...match.evts].reverse().forEach((ev,ri)=>{const idx=match.evts.length-1-ri;const t=match.tA.includes(ev.g)?'Azul':'Vermelho';h+=`<div class="ev-row"><span>⚽</span><span class="badge ${t==='Azul'?'ba':'bb'}">${t}</span><span style="font-weight:700">${ev.g}</span>${ev.a?`<span style="color:#aaa">→ ${ev.a}</span>`:''}<span style="margin-left:auto;cursor:pointer;color:#ccc;font-size:18px;line-height:1" onclick="delG(${idx})">×</span></div>`;});h+=`</div>`;}
+    h+=`<div style="margin-top:12px;display:flex;gap:8px"><button class="btn btn-p" onclick="endM()">🏁 Encerrar</button><button class="btn btn-danger" onclick="canM()">Cancelar</button></div></div>`;el.innerHTML=h;
+  } else if(match.fase==='end'){
+    const res=match.sA>match.sB?'Azul':match.sB>match.sA?'Vermelho':'Empate';
+    el.innerHTML=`<div class="card"><div class="sc-row"><div class="sc-team"><div class="sc-name">Azul</div><div class="sc-num sc-a">${match.sA}</div></div><div style="font-size:28px;color:#ddd;font-weight:200">×</div><div class="sc-team"><div class="sc-name">Vermelho</div><div class="sc-num sc-b">${match.sB}</div></div></div><div style="text-align:center;font-size:16px;font-weight:800;margin-bottom:14px">${res==='Empate'?'🤝 Empate!':res==='Azul'?'🔵 Azul venceu!':'🔴 Vermelho venceu!'}</div><div style="display:flex;gap:8px;justify-content:center"><button class="btn btn-p" onclick="svMatch()">💾 Salvar</button><button class="btn" onclick="match.fase='play';rPartida()">← Voltar</button></div></div>`;
+  }
+}
+function togT(t,p){if(t==='A'){match.tA=match.tA.includes(p)?match.tA.filter(x=>x!==p):[...match.tA,p];match.tB=match.tB.filter(x=>x!==p);}else{match.tB=match.tB.includes(p)?match.tB.filter(x=>x!==p):[...match.tB,p];match.tA=match.tA.filter(x=>x!==p);}rPartida();}
+function shuffM(){const allP=db.elenco.filter(p=>!p.goleiro&&p.tipo!=='goleiro');const sh=[...allP].sort(()=>Math.random()-.5);const mid=Math.floor(sh.length/2);match.tA=sh.slice(0,mid).map(p=>p.nome);match.tB=sh.slice(mid).map(p=>p.nome);const allG=db.elenco.filter(p=>p.goleiro||p.tipo==='goleiro');if(allG[0])match.gA=allG[0].nome;if(allG[1])match.gB=allG[1].nome;rPartida();}
+function startM(){const dt=document.getElementById('mdt');const ga=document.getElementById('gasel');const gb=document.getElementById('gbsel');match.date=dt?dt.value:new Date().toLocaleDateString('pt-BR');if(ga)match.gA=ga.value||null;if(gb)match.gB=gb.value||null;match.fase='play';match.evts=[];match.sA=0;match.sB=0;rPartida();}
+function addG(){const g=document.getElementById('eg').value;const a=document.getElementById('ea').value||null;if(!g)return;if(match.tA.includes(g))match.sA++;else match.sB++;match.evts.push({g,a});rPartida();}
+function delG(i){const ev=match.evts[i];if(match.tA.includes(ev.g))match.sA--;else match.sB--;match.evts.splice(i,1);rPartida();}
+function endM(){match.fase='end';rPartida();}
+function canM(){match={fase:'cfg',tA:[],tB:[],evts:[],sA:0,sB:0,date:'',gA:null,gB:null};rPartida();}
+function svMatch(){const rA=match.sA>match.sB?'Vitória':match.sB>match.sA?'Derrota':'Empate';const rB=match.sB>match.sA?'Vitória':match.sA>match.sB?'Derrota':'Empate';const nr=[];match.tA.forEach(p=>{const g=match.evts.filter(e=>e.g===p).length;const a=match.evts.filter(e=>e.a===p).length;nr.push({date:match.date,time:'Azul',jogador:p,goleiro:false,gols:g,ass:a,resultado:rA,mensalista:'',tipo:tipoJ(p)});});match.tB.forEach(p=>{const g=match.evts.filter(e=>e.g===p).length;const a=match.evts.filter(e=>e.a===p).length;nr.push({date:match.date,time:'Vermelho',jogador:p,goleiro:false,gols:g,ass:a,resultado:rB,mensalista:'',tipo:tipoJ(p)});});if(match.gA)nr.push({date:match.date,time:'Azul',jogador:match.gA,goleiro:true,gols:0,ass:0,resultado:rA,mensalista:'Goleiro',tipo:'goleiro'});if(match.gB)nr.push({date:match.date,time:'Vermelho',jogador:match.gB,goleiro:true,gols:0,ass:0,resultado:rB,mensalista:'Goleiro',tipo:'goleiro'});db.rows=[...db.rows,...nr];syncSave();match={fase:'cfg',tA:[],tB:[],evts:[],sA:0,sB:0,date:'',gA:null,gB:null};go('stats');}
+
+function rFoto(){document.getElementById('s-foto').innerHTML=`<div class="card"><h3>📷 Importar via foto</h3><div class="alert ai" style="margin-bottom:12px">Tire uma foto do formulário preenchido e mande no chat com a mensagem <strong>"importar pelada"</strong>. O Claude lê os dados e confirma antes de salvar.</div><div style="border:2px dashed #d8d8d0;border-radius:10px;padding:2.5rem;text-align:center;cursor:pointer" onclick="document.getElementById('finput').click()"><div id="fprev"><div style="font-size:40px;margin-bottom:8px">📷</div><div style="font-size:13px;color:#aaa;font-weight:600">Clique para selecionar uma foto</div><div style="font-size:11px;color:#ccc;margin-top:4px">JPG, PNG ou WEBP</div></div><input type="file" id="finput" accept="image/*" style="display:none" onchange="hFoto(event)"></div><div id="fstat" style="margin-top:12px"></div></div>`;}
+function hFoto(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{document.getElementById('fprev').innerHTML=`<img src="${ev.target.result}" style="max-width:100%;max-height:200px;border-radius:8px;object-fit:contain">`;document.getElementById('fstat').innerHTML=`<div class="alert as"><strong>${f.name}</strong> carregado! Mande esta foto no chat do Claude com a mensagem "importar pelada" para processar os dados.</div>`;};r.readAsDataURL(f);}
+
+function rDados(){
+  const dts=[...new Set(db.rows.map(r=>r.date))];const gls=db.rows.reduce((s,r)=>s+r.gols,0);
+  document.getElementById('s-dados').innerHTML=`
+  <div class="card"><h3>💾 Base de dados</h3><div class="mgrid" style="margin-bottom:0"><div class="mcard"><div class="mlbl">Registros</div><div class="mval">${db.rows.length}</div></div><div class="mcard"><div class="mlbl">Partidas</div><div class="mval">${dts.length}</div></div><div class="mcard"><div class="mlbl">Jogadores</div><div class="mval">${db.elenco.length}</div></div><div class="mcard"><div class="mlbl">Gols totais</div><div class="mval">${gls}</div></div></div></div>
+  <div class="card"><h3>⬇ Exportar</h3><p style="font-size:13px;color:#888;margin-bottom:12px">Baixe uma cópia completa no formato da planilha original.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-ok" onclick="expXLSX()">⬇ Exportar Excel (.xlsx)</button><button class="btn" onclick="expCSV()">⬇ Exportar CSV</button></div><div id="estat" style="margin-top:10px;font-size:12px"></div></div>
+  <hr class="div">
+  <div class="card"><h3>⬆ Importar planilha</h3><div class="alert ai">Selecione tudo na Plan1 do Excel (Ctrl+A → Ctrl+C) e cole aqui.</div><label>Dados</label><textarea id="itxt" style="height:110px;resize:vertical;font-family:monospace;font-size:12px" placeholder="Cole os dados..."></textarea><div style="margin-top:10px;display:flex;gap:8px"><button class="btn btn-p" onclick="reqAdm(()=>impData())">Importar</button><button class="btn btn-danger" onclick="reqAdm(()=>clearAll())">Limpar tudo</button></div><div id="imsg" style="margin-top:8px;font-size:12px"></div></div>`;
+}
+
+function parseR(txt){const lines=txt.trim().split('\n');const rows=[];for(const line of lines){const cols=line.split('\t');if(cols.length<5)continue;const dn=parseFloat(cols[0].trim());const ds=(!isNaN(dn)&&dn>1000)?exD(dn):cols[0].trim();const time=nT(cols[1]);const jr=cols[2]||'';const gol=isGP(jr);const jog=nN(jr);const gols=parseInt(cols[3])||0;const ass=parseInt(cols[4])||0;const res=nR(cols[5]||'');const mens=cols[6]||'';const tipo=gol?'goleiro':clsM(mens);if(!jog||['jogador','data','gol contra',''].some(x=>jog.toLowerCase()===x))continue;rows.push({date:ds,time,jogador:jog,goleiro:gol,gols,ass,resultado:res,mensalista:mens,tipo});}return rows;}
+function impData(){const txt=document.getElementById('itxt').value;if(!txt.trim()){document.getElementById('imsg').innerHTML='<span style="color:#b03030">Cole os dados primeiro.</span>';return;}const rows=parseR(txt);if(!rows.length){document.getElementById('imsg').innerHTML='<span style="color:#b03030">Nenhuma linha reconhecida.</span>';return;}const seen=new Set(db.rows.map(r=>`${r.date}|${r.jogador}|${r.time}`));const nv=rows.filter(r=>!seen.has(`${r.date}|${r.jogador}|${r.time}`));nv.forEach(r=>{if(!db.elenco.find(p=>p.nome===r.jogador))db.elenco.push({id:'e_'+r.jogador.replace(/\s/g,'_')+Date.now(),nome:r.jogador,tipo:r.tipo,goleiro:r.goleiro});});db.rows=[...db.rows,...nv];syncSave();document.getElementById('imsg').innerHTML=`<span style="color:#2d5a1b;font-weight:700">${nv.length} novos registros importados.</span>`;rDados();}
+function clearAll(){if(!confirm('Limpar TODOS os dados? Esta ação não pode ser desfeita.'))return;db={rows:[],elenco:[]};syncSave();rDados();}
+
+function bExp(){return[...db.rows].sort((a,b)=>{const p=x=>{const t=x.split('/');return t.length===3?new Date(t[2],t[1]-1,t[0]):new Date(0);};const d=p(a.date)-p(b.date);if(d)return d;return a.time<b.time?-1:a.time>b.time?1:0;}).map(r=>({'Data':r.date,'Time':r.time,'Jogador':r.jogador,'Gols':r.gols,'Assistência':r.ass,'Resultado':r.resultado,'Mensalista':r.mensalista||r.tipo||''}));}
+function expXLSX(){if(!db.rows.length){document.getElementById('estat').innerHTML='<span style="color:#b03030">Nenhum dado.</span>';return;}try{const d=bExp();const ws=XLSX.utils.json_to_sheet(d);ws['!cols']=[{wch:12},{wch:10},{wch:22},{wch:6},{wch:12},{wch:10},{wch:12}];const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,'Plan1',ws);const hj=new Date().toLocaleDateString('pt-BR').replace(/\//g,'-');XLSX.writeFile(wb,`pelada_backup_${hj}.xlsx`);document.getElementById('estat').innerHTML=`<span style="color:#2d5a1b;font-weight:700">✓ Exportado!</span> ${db.rows.length} registros em pelada_backup_${hj}.xlsx`;}catch(e){document.getElementById('estat').innerHTML=`<span style="color:#b03030">Erro: ${e.message}</span>`;}}
+function expCSV(){if(!db.rows.length){document.getElementById('estat').innerHTML='<span style="color:#b03030">Nenhum dado.</span>';return;}const d=bExp();const hdr=Object.keys(d[0]).join('\t');const lns=d.map(r=>Object.values(r).join('\t'));const csv=[hdr,...lns].join('\n');const blob=new Blob(['\uFEFF'+csv],{type:'text/tab-separated-values;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');const hj=new Date().toLocaleDateString('pt-BR').replace(/\//g,'-');a.href=url;a.download=`pelada_backup_${hj}.csv`;a.click();URL.revokeObjectURL(url);document.getElementById('estat').innerHTML=`<span style="color:#2d5a1b;font-weight:700">✓ Exportado!</span> ${db.rows.length} registros em pelada_backup_${hj}.csv`;}
+
+function seed(){
+  db.rows=parseR(`46028\tvermelho\tluiz\t1\t1\tempate\tjaneiro\n46028\tvermelho\tmarcelo\t3\t1\tempate\tjaneiro\n46028\tvermelho\tLuquinhas\t1\t0\tempate\tjaneiro\n46028\tvermelho\tnori\t3\t2\tempate\tjaneiro\n46028\tvermelho\tjoe\t4\t5\tempate\tjaneiro\n46028\tvermelho\tJeferson\t1\t1\tempate\tjaneiro\n46028\tvermelho\tMatheus Henrique (goleiro)\t0\t2\tempate\tGoleiro\n46028\tazul\tThiago M.\t1\t1\tempate\tjaneiro\n46028\tazul\tKazu\t2\t2\tempate\tjaneiro\n46028\tazul\tVictor\t3\t0\tempate\tjaneiro\n46028\tazul\tDiego\t1\t3\tempate\tjaneiro\n46028\tazul\tPic\t3\t1\tempate\tjaneiro\n46028\tazul\tgomides\t3\t1\tempate\tjaneiro\n46028\tazul\tVinicius (goleiro)\t0\t3\tempate\tGoleiro\n46035\tVermelho\tpic\t2\t4\tDerrota\tjaneiro\n46035\tVermelho\tFellipe Marques\t1\t3\tDerrota\tAvulso\n46035\tVermelho\tVictor\t6\t0\tDerrota\tjaneiro\n46035\tVermelho\tMarcelo\t1\t0\tDerrota\tjaneiro\n46035\tVermelho\tKazu\t2\t2\tDerrota\tjaneiro\n46035\tVermelho\tjoe\t1\t3\tDerrota\tjaneiro\n46035\tVermelho\tMatheus Henrique (goleiro)\t0\t3\tDerrota\tgoleiro\n46035\tazul\tsamuel\t1\t1\tVitória\tAvulso\n46035\tazul\tThiago M.\t0\t1\tVitória\tjaneiro\n46035\tazul\tLuquinhas\t2\t0\tVitória\tjaneiro\n46035\tazul\tJeferson\t2\t2\tVitória\tjaneiro\n46035\tazul\tnori\t4\t4\tVitória\tjaneiro\n46035\tazul\tgomides\t5\t0\tVitória\tjaneiro\n46035\tazul\tVinicius (goleiro)\t1\t0\tVitória\tgoleiro\n46042\tAzul\tFellipe Marques\t3\t1\tDerrota\tAvulso\n46042\tAzul\tgomides\t2\t2\tDerrota\tGoleiro\n46042\tAzul\tvictor\t4\t0\tDerrota\tjaneiro\n46042\tAzul\tThiago M.\t1\t11\tDerrota\tjaneiro\n46042\tAzul\tPic\t3\t3\tDerrota\tjaneiro\n46042\tAzul\tNori\t0\t4\tDerrota\tjaneiro\n46042\tAzul\tJean (goleiro)\t0\t0\tDerrota\tGoleiro\n46042\tVermelho\tJeferson\t2\t3\tVitória\tjaneiro\n46042\tVermelho\tLuquinhas\t5\t0\tVitória\tjaneiro\n46042\tVermelho\tDiego\t3\t0\tVitória\tjaneiro\n46042\tVermelho\tluiz\t1\t2\tVitória\tjaneiro\n46042\tVermelho\tsamuel\t4\t3\tVitória\tAvulso\n46042\tVermelho\tjoe\t2\t4\tVitória\tjaneiro\n46042\tVermelho\tVinicius (goleiro)\t2\t3\tVitória\tGoleiro\n46049\tAzul\tLuquinhas\t2\t0\tDerrota\tjaneiro\n46049\tAzul\tDiego\t0\t1\tDerrota\tjaneiro\n46049\tAzul\tJeferson\t1\t0\tDerrota\tjaneiro\n46049\tAzul\tLuiz\t1\t1\tDerrota\tjaneiro\n46049\tAzul\tNori\t2\t1\tDerrota\tjaneiro\n46049\tAzul\tJoe\t0\t2\tDerrota\tjaneiro\n46049\tAzul\tMatheus Henrique (goleiro)\t0\t0\tDerrota\tGoleiro\n46049\tVermelho\tFelipe\t2\t0\tVitória\tAvulso\n46049\tVermelho\tThiago M.\t0\t2\tVitória\tjaneiro\n46049\tVermelho\tPic\t2\t0\tVitória\tjaneiro\n46049\tVermelho\tVictor\t2\t0\tVitória\tjaneiro\n46049\tVermelho\tKazu\t1\t0\tVitória\tjaneiro\n46049\tVermelho\tGomides\t0\t0\tVitória\tjaneiro\n46049\tVermelho\tMatheus Felipe (goleiro)\t1\t0\tVitória\tGoleiro\n46056\tVermelho\tJeferson\t1\t0\tDerrota\tFevereiro\n46056\tVermelho\tLuiz\t1\t0\tDerrota\tFevereiro\n46056\tVermelho\tGomides\t4\t0\tDerrota\tFevereiro\n46056\tVermelho\tLuquinhas\t0\t1\tDerrota\tFevereiro\n46056\tVermelho\tJoe\t0\t1\tDerrota\tFevereiro\n46056\tVermelho\tMatheus Henrique (goleiro)\t1\t1\tDerrota\tGoleiro\n46056\tAzul\tNori\t4\t1\tVitória\tFevereiro\n46056\tAzul\tsamuel\t1\t2\tVitória\tAvulso\n46056\tAzul\tPic\t6\t1\tVitória\tFevereiro\n46056\tAzul\tmarcelo\t2\t2\tVitória\tFevereiro\n46056\tAzul\tVictor\t1\t3\tVitória\tFevereiro\n46056\tAzul\tVinicius (goleiro)\t0\t0\tVitória\tGoleiro\n46063\tVermelho\tLuquinhas\t4\t3\tVitória\tFevereiro\n46063\tVermelho\tpedro\t1\t0\tVitória\tAvulso\n46063\tVermelho\tMateus\t2\t3\tVitória\tAvulso\n46063\tVermelho\tVictor\t2\t1\tVitória\tFevereiro\n46063\tVermelho\tNori\t5\t2\tVitória\tFevereiro\n46063\tVermelho\tMatheus Henrique (goleiro)\t1\t2\tVitória\tGoleiro\n46063\tAzul\tPic\t3\t5\tDerrota\tFevereiro\n46063\tAzul\tJoe\t1\t3\tDerrota\tFevereiro\n46063\tAzul\tgomides\t6\t1\tDerrota\tFevereiro\n46063\tAzul\tKazu\t2\t3\tDerrota\tFevereiro\n46063\tAzul\tThiago M.\t1\t1\tDerrota\tFevereiro\n46063\tAzul\tVinicius (goleiro)\t0\t0\tDerrota\tGoleiro\n46077\tAzul\tThiago M.\t1\t2\tDerrota\tFevereiro\n46077\tAzul\tPic\t2\t0\tDerrota\tFevereiro\n46077\tAzul\tVictor\t1\t2\tDerrota\tFevereiro\n46077\tAzul\tLuiz\t0\t1\tDerrota\tFevereiro\n46077\tAzul\tNori\t1\t0\tDerrota\tFevereiro\n46077\tAzul\tVinicius (goleiro)\t0\t0\tDerrota\tGoleiro\n46077\tvermelho\tMarcelo\t1\t1\tVitória\tFevereiro\n46077\tvermelho\tLuquinhas\t5\t2\tVitória\tFevereiro\n46077\tvermelho\tjoe\t5\t5\tVitória\tFevereiro\n46077\tvermelho\tkazu\t4\t4\tVitória\tFevereiro\n46077\tvermelho\tMatheus Henrique (goleiro)\t0\t0\tVitória\tGoleiro\n46084\tvermelho\tNori\t1\t4\tVitória\tMarço\n46084\tvermelho\tVictor\t2\t1\tVitória\tMarço\n46084\tvermelho\tLuquinhas\t2\t0\tVitória\tMarço\n46084\tvermelho\tLuiz\t2\t0\tVitória\tMarço\n46084\tvermelho\tJeferson\t2\t1\tVitória\tMarço\n46084\tvermelho\tVinicius (goleiro)\t1\t0\tVitória\tGoleiro\n46084\tazul\tsamuel\t1\t0\tDerrota\tAvulso\n46084\tazul\tPic\t1\t1\tDerrota\tMarço\n46084\tazul\tMarcelo\t0\t0\tDerrota\tMarço\n46084\tazul\tErick\t1\t0\tDerrota\tAvulso\n46084\tazul\tKazu\t1\t1\tDerrota\tMarço\n46084\tazul\tMatheus Henrique (goleiro)\t0\t1\tDerrota\tGoleiro\n46091\tVermelho\tLuiz\t0\t1\tDerrota\tMarço\n46091\tVermelho\tPic\t1\t2\tDerrota\tMarço\n46091\tVermelho\tVictor\t1\t2\tDerrota\tMarço\n46091\tVermelho\tThiago M.\t4\t0\tDerrota\tMarço\n46091\tVermelho\tnori\t2\t1\tDerrota\tMarço\n46091\tVermelho\tMatheus Henrique (goleiro)\t1\t2\tDerrota\tgoleiro\n46091\tazul\tKazu\t2\t3\tVitória\tMarço\n46091\tazul\tJeferson\t2\t3\tVitória\tMarço\n46091\tazul\tLuquinhas\t4\t0\tVitória\tMarço\n46091\tazul\tJoe\t3\t3\tVitória\tMarço\n46091\tazul\tVinicius (goleiro)\t0\t1\tVitória\tgoleiro\n46105\tAzul\tGomides\t2\t0\tDerrota\tMarço\n46105\tAzul\tLuquinhas\t2\t0\tDerrota\tMarço\n46105\tAzul\tMarcelo\t0\t0\tDerrota\tMarço\n46105\tAzul\tNori\t1\t1\tDerrota\tMarço\n46105\tAzul\tMatheus Henrique (goleiro)\t1\t0\tDerrota\tGoleiro\n46105\tVermelho\tPic\t3\t1\tVitória\tMarço\n46105\tVermelho\tJoe\t2\t1\tVitória\tMarço\n46105\tVermelho\tKazu\t1\t1\tVitória\tMarço\n46105\tVermelho\tJeferson\t0\t1\tVitória\tMarço\n46105\tVermelho\tVinicius (goleiro)\t1\t0\tVitória\tGoleiro\n46112\tVermelho\tPic\t4\t2\tDerrota\tMarço\n46112\tVermelho\tVictor\t3\t1\tDerrota\tMarço\n46112\tVermelho\tKazu\t1\t0\tDerrota\tMarço\n46112\tVermelho\tJoe\t0\t0\tDerrota\tMarço\n46112\tVermelho\tMatheus Henrique (goleiro)\t2\t0\tDerrota\tGoleiro\n46112\tAzul\tJeferson\t0\t4\tVitória\tMarço\n46112\tAzul\tLuquinhas\t1\t4\tVitória\tMarço\n46112\tAzul\tThiago M.\t1\t1\tVitória\tMarço\n46112\tAzul\tGomides\t7\t1\tVitória\tMarço\n46112\tAzul\tLuiz\t2\t0\tVitória\tMarço\n46112\tAzul\tNori\t2\t2\tVitória\tMarço\n46112\tAzul\tVinicius (goleiro)\t0\t1\tVitória\tGoleiro\n21/04/2026\tVermelho\tBR\t0\t0\tDerrota\tAvulso\n21/04/2026\tVermelho\tRobert\t1\t0\tDerrota\tAvulso\n21/04/2026\tVermelho\tAlex\t0\t1\tDerrota\tAvulso\n21/04/2026\tVermelho\tThiago Afya\t1\t0\tDerrota\tAvulso\n21/04/2026\tVermelho\tVictor\t1\t1\tDerrota\tMarço\n21/04/2026\tVermelho\tKazu\t1\t1\tDerrota\tMarço\n21/04/2026\tVermelho\tArthur (goleiro)\t0\t1\tDerrota\tGoleiro\n21/04/2026\tAzul\tLuquinhas\t2\t1\tVitória\tMarço\n21/04/2026\tAzul\tNori\t2\t0\tVitória\tMarço\n21/04/2026\tAzul\tLuiz\t1\t2\tVitória\tMarço\n21/04/2026\tAzul\tMateus\t0\t1\tVitória\tAvulso\n21/04/2026\tAzul\tJoe\t1\t1\tVitória\tMarço\n21/04/2026\tAzul\tJeferson\t0\t0\tVitória\tMarço\n21/04/2026\tAzul\tMatheus Henrique (goleiro)\t1\t2\tVitória\tGoleiro`);
+  db.elenco=[];const names=new Set();
+  const kM=['Victor','Luquinhas','Nori','Jeferson','Joe','Kazu','Luiz','Thiago M.','Pic','Gomides','Marcelo','Diego'];
+  db.rows.forEach(r=>{if(!names.has(r.jogador)){db.elenco.push({id:'e_'+r.jogador.replace(/\s/g,'_'),nome:r.jogador,tipo:r.goleiro?'goleiro':(kM.includes(r.jogador)?'mensalista':'avulso'),goleiro:r.goleiro});names.add(r.jogador);}});
+}
+</script>
+</body>
+</html>
