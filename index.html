@@ -193,10 +193,9 @@ const cfg={apiKey:"AIzaSyBnabdeOTMZ3KLFyVmSMO1El_EWSiJFREQ",authDomain:"pelada-f
 const fapp=initializeApp(cfg);
 const fdb=getDatabase(fapp);
 function ss(st){const d=document.getElementById('sdot'),t=document.getElementById('stxt');if(!d)return;d.className='sdot'+(st==='spin'?' spin':st==='err'?' err':'');t.textContent=st==='ok'?'Sincronizado':st==='spin'?'Salvando...':'Erro';}
-window._fbSave=async(data)=>{ss('spin');try{const payload={...data,_auth:'pelada_fire_2026'};await set(ref(fdb,'pelada'),payload);ss('ok');}catch(e){ss('err');}};
-const strip=d=>{if(!d)return null;const{_auth,...clean}=d;return clean;};
-window._fbLoad=async()=>{ss('spin');try{const s=await get(ref(fdb,'pelada'));ss('ok');return s.exists()?strip(s.val()):null;}catch(e){ss('err');return null;}};
-window._fbListen=(cb)=>{onValue(ref(fdb,'pelada'),(s)=>{ss('ok');if(s.exists())cb(strip(s.val()));},(e)=>ss('err'));};
+window._fbSave=async(data)=>{ss('spin');try{await set(ref(fdb,'pelada'),data);ss('ok');}catch(e){ss('err');}};
+window._fbLoad=async()=>{ss('spin');try{const s=await get(ref(fdb,'pelada'));ss('ok');return s.exists()?s.val():null;}catch(e){ss('err');return null;}};
+window._fbListen=(cb)=>{onValue(ref(fdb,'pelada'),(s)=>{ss('ok');if(s.exists())cb(s.val());},(e)=>ss('err'));};
 window._fbReady=true;
 if(window._appBoot)window._appBoot();
 </script>
@@ -207,13 +206,14 @@ let db={rows:[],elenco:[]};
 let fAv=false,fMes='todos',selAt='',rChart=null,editD=null;
 let isAdm=false,pendFn=null;
 
-function syncSave(){if(window._fbSave)window._fbSave(db);}
+let _saving=false;
+function syncSave(){if(window._fbSave){_saving=true;window._fbSave(db);setTimeout(()=>{_saving=false;},3000);}}
 
 window._appBoot=async function(){
   const d=await(window._fbLoad?window._fbLoad():null);
   if(d&&d.rows&&d.rows.length){db=d;}else{seed();}
   if(!db.elenco)db.elenco=[];
-  if(window._fbListen)window._fbListen(d=>{if(d&&d.rows){db=d;const tabs=['stats','score','atleta','u8','elenco','partida','historico','foto','dados'];const at=document.querySelector('.tab.active');if(at){const i=[...document.querySelectorAll('.tab')].indexOf(at);if(i>=0)go(tabs[i]);}}});
+  if(window._fbListen)window._fbListen(d=>{if(_saving)return;if(d&&d.rows){db=d;const tabs=['stats','score','atleta','u8','elenco','partida','historico','foto','dados'];const at=document.querySelector('.tab.active');if(at){const i=[...document.querySelectorAll('.tab')].indexOf(at);if(i>=0)go(tabs[i]);}}});
   go('stats');
 };
 if(window._fbReady)window._appBoot();
@@ -415,13 +415,19 @@ function rEditP(el){
 function svEdit(d){const rows=db.rows.filter(r=>r.date===d);rows.forEach(r=>{const idx=db.rows.indexOf(r);const ni=document.getElementById(`en_${idx}`);const gi=document.getElementById(`eg_${idx}`);const ai=document.getElementById(`ea_${idx}`);if(ni){const nn=nN(ni.value);if(nn&&nn!==r.jogador){const eo=db.elenco.find(p=>p.nome===r.jogador);if(eo)eo.nome=nn;else db.elenco.push({id:'e_'+Date.now(),nome:nn,tipo:r.goleiro?'goleiro':'avulso',goleiro:r.goleiro});r.jogador=nn;}}if(gi)r.gols=parseInt(gi.value)||0;if(ai)r.ass=parseInt(ai.value)||0;});const az=db.rows.filter(r=>r.date===d&&r.time==='Azul'),ve=db.rows.filter(r=>r.date===d&&r.time==='Vermelho');const gA=az.reduce((s,r)=>s+r.gols,0),gV=ve.reduce((s,r)=>s+r.gols,0);const rA=gA>gV?'Vitória':gV>gA?'Derrota':'Empate',rV=gV>gA?'Vitória':gA>gV?'Derrota':'Empate';db.rows.forEach(r=>{if(r.date===d)r.resultado=r.time==='Azul'?rA:rV;});syncSave();editD=null;rHist();}
 function delP(d){if(!confirm(`Excluir a partida de ${d} permanentemente?`))return;db.rows=db.rows.filter(r=>r.date!==d);syncSave();editD=null;rHist();}
 
-let match={fase:'cfg',tA:[],tB:[],evts:[],sA:0,sB:0,date:'',gA:null,gB:null};
+const MATCH_KEY='pelada_match_wip';
+function matchSave(){try{localStorage.setItem(MATCH_KEY,JSON.stringify(match));}catch(e){}}
+function matchClear(){try{localStorage.removeItem(MATCH_KEY);}catch(e){}}
+function matchRestore(){try{const s=localStorage.getItem(MATCH_KEY);if(s){const m=JSON.parse(s);if(m&&m.fase&&m.fase!=='cfg')return m;}return null;}catch(e){return null;}}
+let match=matchRestore()||{fase:'cfg',tA:[],tB:[],evts:[],sA:0,sB:0,date:'',gA:null,gB:null};
 function rPartida(){
   const el=document.getElementById('s-partida');
   const allP=db.elenco.filter(p=>!p.goleiro&&p.tipo!=='goleiro').sort((a,b)=>a.nome.localeCompare(b.nome));
   const allG=db.elenco.filter(p=>p.goleiro||p.tipo==='goleiro').sort((a,b)=>a.nome.localeCompare(b.nome));
   if(match.fase==='cfg'){
+    const wip=matchRestore();
     let h=`<div class="card"><h3>⚙️ Configurar partida</h3>`;
+    if(wip){h+=`<div class="alert as" style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:8px"><span>⚠️ Partida em andamento recuperada! Placar: <strong>${wip.sA}×${wip.sB}</strong></span><button class="btn btn-sm btn-p" onclick="match=matchRestore()||match;rPartida()">Retomar</button></div>`;}
     if(!allP.length)h+=`<div class="alert aw" style="margin-bottom:10px">Nenhum jogador no elenco. Cadastre em "Elenco" primeiro.</div>`;
     h+=`<label>Data</label><input type="text" id="mdt" value="${match.date||new Date().toLocaleDateString('pt-BR')}" style="max-width:150px">`;
     if(allP.length){h+=`<div class="sdiv" style="color:#185fa5">TIME AZUL</div><div>`;allP.forEach(p=>{const s=match.tA.includes(p.nome);h+=`<span class="chip ${s?'sel ca':''}" onclick="togT('A','${p.nome}')">${p.nome}</span>`;});h+=`</div><div class="sdiv" style="color:#c0392b">TIME VERMELHO</div><div>`;allP.forEach(p=>{const s=match.tB.includes(p.nome);h+=`<span class="chip ${s?'sel cb':''}" onclick="togT('B','${p.nome}')">${p.nome}</span>`;});h+=`</div>`;}
@@ -440,12 +446,12 @@ function rPartida(){
 }
 function togT(t,p){if(t==='A'){match.tA=match.tA.includes(p)?match.tA.filter(x=>x!==p):[...match.tA,p];match.tB=match.tB.filter(x=>x!==p);}else{match.tB=match.tB.includes(p)?match.tB.filter(x=>x!==p):[...match.tB,p];match.tA=match.tA.filter(x=>x!==p);}rPartida();}
 function shuffM(){const allP=db.elenco.filter(p=>!p.goleiro&&p.tipo!=='goleiro');const sh=[...allP].sort(()=>Math.random()-.5);const mid=Math.floor(sh.length/2);match.tA=sh.slice(0,mid).map(p=>p.nome);match.tB=sh.slice(mid).map(p=>p.nome);const allG=db.elenco.filter(p=>p.goleiro||p.tipo==='goleiro');if(allG[0])match.gA=allG[0].nome;if(allG[1])match.gB=allG[1].nome;rPartida();}
-function startM(){const dt=document.getElementById('mdt');const ga=document.getElementById('gasel');const gb=document.getElementById('gbsel');match.date=dt?dt.value:new Date().toLocaleDateString('pt-BR');if(ga)match.gA=ga.value||null;if(gb)match.gB=gb.value||null;match.fase='play';match.evts=[];match.sA=0;match.sB=0;rPartida();}
-function addG(){const g=document.getElementById('eg').value;const a=document.getElementById('ea').value||null;if(!g)return;if(match.tA.includes(g)||g===match.gA)match.sA++;else match.sB++;match.evts.push({g,a});rPartida();}
-function delG(i){const ev=match.evts[i];if(match.tA.includes(ev.g)||ev.g===match.gA)match.sA--;else match.sB--;match.evts.splice(i,1);rPartida();}
-function endM(){match.fase='end';rPartida();}
-function canM(){match={fase:'cfg',tA:[],tB:[],evts:[],sA:0,sB:0,date:'',gA:null,gB:null};rPartida();}
-function svMatch(){const rA=match.sA>match.sB?'Vitória':match.sB>match.sA?'Derrota':'Empate';const rB=match.sB>match.sA?'Vitória':match.sA>match.sB?'Derrota':'Empate';const nr=[];match.tA.forEach(p=>{const g=match.evts.filter(e=>e.g===p).length;const a=match.evts.filter(e=>e.a===p).length;nr.push({date:match.date,time:'Azul',jogador:p,goleiro:false,gols:g,ass:a,resultado:rA,mensalista:'',tipo:tipoJ(p)});});match.tB.forEach(p=>{const g=match.evts.filter(e=>e.g===p).length;const a=match.evts.filter(e=>e.a===p).length;nr.push({date:match.date,time:'Vermelho',jogador:p,goleiro:false,gols:g,ass:a,resultado:rB,mensalista:'',tipo:tipoJ(p)});});if(match.gA){const g=match.evts.filter(e=>e.g===match.gA).length;const a=match.evts.filter(e=>e.a===match.gA).length;nr.push({date:match.date,time:'Azul',jogador:match.gA,goleiro:true,gols:g,ass:a,resultado:rA,mensalista:'Goleiro',tipo:'goleiro'});}if(match.gB){const g=match.evts.filter(e=>e.g===match.gB).length;const a=match.evts.filter(e=>e.a===match.gB).length;nr.push({date:match.date,time:'Vermelho',jogador:match.gB,goleiro:true,gols:g,ass:a,resultado:rB,mensalista:'Goleiro',tipo:'goleiro'});}db.rows=[...db.rows,...nr];syncSave();match={fase:'cfg',tA:[],tB:[],evts:[],sA:0,sB:0,date:'',gA:null,gB:null};go('stats');}
+function startM(){const dt=document.getElementById('mdt');const ga=document.getElementById('gasel');const gb=document.getElementById('gbsel');match.date=dt?dt.value:new Date().toLocaleDateString('pt-BR');if(ga)match.gA=ga.value||null;if(gb)match.gB=gb.value||null;match.fase='play';match.evts=[];match.sA=0;match.sB=0;matchSave();rPartida();}
+function addG(){const g=document.getElementById('eg').value;const a=document.getElementById('ea').value||null;if(!g)return;if(match.tA.includes(g)||g===match.gA)match.sA++;else match.sB++;match.evts.push({g,a});matchSave();rPartida();}
+function delG(i){const ev=match.evts[i];if(match.tA.includes(ev.g)||ev.g===match.gA)match.sA--;else match.sB--;match.evts.splice(i,1);matchSave();rPartida();}
+function endM(){match.fase='end';matchSave();rPartida();}
+function canM(){match={fase:'cfg',tA:[],tB:[],evts:[],sA:0,sB:0,date:'',gA:null,gB:null};matchClear();rPartida();}
+function svMatch(){const rA=match.sA>match.sB?'Vitória':match.sB>match.sA?'Derrota':'Empate';const rB=match.sB>match.sA?'Vitória':match.sA>match.sB?'Derrota':'Empate';const nr=[];match.tA.forEach(p=>{const g=match.evts.filter(e=>e.g===p).length;const a=match.evts.filter(e=>e.a===p).length;nr.push({date:match.date,time:'Azul',jogador:p,goleiro:false,gols:g,ass:a,resultado:rA,mensalista:'',tipo:tipoJ(p)});});match.tB.forEach(p=>{const g=match.evts.filter(e=>e.g===p).length;const a=match.evts.filter(e=>e.a===p).length;nr.push({date:match.date,time:'Vermelho',jogador:p,goleiro:false,gols:g,ass:a,resultado:rB,mensalista:'',tipo:tipoJ(p)});});if(match.gA){const g=match.evts.filter(e=>e.g===match.gA).length;const a=match.evts.filter(e=>e.a===match.gA).length;nr.push({date:match.date,time:'Azul',jogador:match.gA,goleiro:true,gols:g,ass:a,resultado:rA,mensalista:'Goleiro',tipo:'goleiro'});}if(match.gB){const g=match.evts.filter(e=>e.g===match.gB).length;const a=match.evts.filter(e=>e.a===match.gB).length;nr.push({date:match.date,time:'Vermelho',jogador:match.gB,goleiro:true,gols:g,ass:a,resultado:rB,mensalista:'Goleiro',tipo:'goleiro'});}db.rows=[...db.rows,...nr];syncSave();match={fase:'cfg',tA:[],tB:[],evts:[],sA:0,sB:0,date:'',gA:null,gB:null};matchClear();go('stats');}
 
 function rFoto(){document.getElementById('s-foto').innerHTML=`<div class="card"><h3>📷 Importar via foto</h3><div class="alert ai" style="margin-bottom:12px">Tire uma foto do formulário preenchido e mande no chat com a mensagem <strong>"importar pelada"</strong>. O Claude lê os dados e confirma antes de salvar.</div><div style="border:2px dashed #d8d8d0;border-radius:10px;padding:2.5rem;text-align:center;cursor:pointer" onclick="document.getElementById('finput').click()"><div id="fprev"><div style="font-size:40px;margin-bottom:8px">📷</div><div style="font-size:13px;color:#aaa;font-weight:600">Clique para selecionar uma foto</div><div style="font-size:11px;color:#ccc;margin-top:4px">JPG, PNG ou WEBP</div></div><input type="file" id="finput" accept="image/*" style="display:none" onchange="hFoto(event)"></div><div id="fstat" style="margin-top:12px"></div></div>`;}
 function hFoto(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{document.getElementById('fprev').innerHTML=`<img src="${ev.target.result}" style="max-width:100%;max-height:200px;border-radius:8px;object-fit:contain">`;document.getElementById('fstat').innerHTML=`<div class="alert as"><strong>${f.name}</strong> carregado! Mande esta foto no chat do Claude com a mensagem "importar pelada" para processar os dados.</div>`;};r.readAsDataURL(f);}
